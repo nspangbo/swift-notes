@@ -2,6 +2,12 @@
 
 > Swift 5 学习笔记。
 
+### 目录
+
+1. [A Swift Tour](#A Swift Tour)
+1. [The Basics](#The Basics)
+
+
 ### A Swift Tour
 
 1. 在跨行字符串中，每一行的有效缩进，是相对右引号（最后三个引号）的缩进，右引号的缩进必须大于所有行的缩进，否则编译器会报错。
@@ -15,7 +21,7 @@
     """
     ```
 
-2. Swift 类型严格，因此 `if` 条件返回 `boolean` 值：
+2. Swift 是类型安全的，因此 `if` 条件返回 `boolean` 值：
     ```Swift
     if score { // error 
         ... 
@@ -43,6 +49,38 @@
 
 ### The Basics
 
+1. 首先，变量命名不再局限于 [ASCII](https://en.wikipedia.org/wiki/ASCII) 编码啦！😁如果和系统保留关键字重名，可以用 `` 包裹起来，不过为什么一定要这样呢~
+    ```Swift
+    let `init` = "initialize"
+    let π = 3.14159
+    let 你好 = "你好世界"
+    let 🐶🐮 = "dogcow"
+    ```
+
+2. Swift 提供 `Int`、`Int8`、`Int32`、`Int64` 等数据类型表示整数，在没有特别需求时，建议使用 `Int`，而非其他明确位数的类型。`Int` 是一个和平台相关的类型，即32位机中等价于 `Int32`，64位机中等价于 `Int64`，使用 `Int` 可以提高代码的一致性和互操作性。特别的，如果没有特别需求，即使知道所存储的数据时无符号的，也应该尽量使用 `Int` 而非 `UInt`，避免无谓的类型转换和类型推断。
+
+3. Swift 提供 `Double` 和 `Float` 类型用于表示浮点数，两者分别具有至少15位和6位的十进制小数精度，当两者均可选时，`Double` 是首选类型。
+
+4. Swift 是类型安全的语言，类型检查和类型推断都是在编译时进行的。在使用字面量初始化变量时，类型推断会选择上述2、3中的首选类型。
+
+5. `typealias` 用于声明别名：
+    ```Swift
+    typealias AudioSample = UInt16
+    ```
+
+6. 强制解包(Forced Unwrapping)操作应该始终在确认可选值有值之后。
+    ```Swift
+    if convertedNumber != nil {
+        print("convertedNumber has an integer value of \(convertedNumber!).")
+    }
+    // Prints "convertedNumber has an integer value of 123."
+    ```
+
+7. 可选绑定(Optional Binding)创建的临时变量仅在其后的闭包定义域中有效，而 `guard` 语句定义的临时变量则在 `guard` 所在定义域内均有效。
+
+8. 隐式解包可选值(`Type!`)区别于可选值(`Type?`)，被认为首次赋值之后便一定有值，后续使用时不用再进行可选绑定，主要用于[类初始化期间](https://docs.swift.org/swift-book/LanguageGuide/AutomaticReferenceCounting.html#ID55)。业务方不建议使用该类型，因为复杂的业务可能无法保证变量满足隐式解包可选值的要求，从而导致程序崩溃。
+
+9. 断言(assertions)仅在开发环境中有效，前置条件(preconditions)在开发环境和生产环境中均有效，除非以 unchecked mode(-Ounchecked) 模式编译，两者均发生在运行时。`fatalError` 方法无论什么环境下都会导致程序突出，建议仅用于开发期间标识为实现的功能。
 
 
 ### Basic Operators
