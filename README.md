@@ -116,8 +116,41 @@
 
 ## Strings and Characters
 
-1. 多行字符串的缩进问题
+1. 扩展字符串分隔符(Extended String Delimiters)用于在是字符串特殊字符不生效的前提下，打印字符串，[这里](https://github.com/apple/swift-evolution/blob/master/proposals/0200-raw-string-escaping.md) 详细阐述了这一建议。
+    ```Swift
+    print("Line 1\nLine 2")
+    // output
+    // Line 1
+    // Line 2
 
+    print(#"Line 1\nLine 2"#)
+    // output
+    // Line 1\nLine 2
+
+    print(#"Write an interpolated string in Swift using \(multiplier)."#)
+    // Prints "Write an interpolated string in Swift using \(multiplier)."
+
+    print(#"6 times 7 is \#(6 * 7)."#)
+    // Prints "6 times 7 is 42."
+    ```
+
+2. Swift `String` 类型完全符合 Unicode 标准，`String` 类型构建于 Unicode 标量(Unicode scalar values)之上，Unicode 标量是一个唯一的21位二进制位数字，不过并非21位全部分配给字符，某些标量被保留，用于将来分配或者 UTF-16 编
+码。每一个已分配的字符标量都有一个名字：
+    ```Swift
+    "a" --> LATIN SMALL LETTER A
+    "🐥" --> FRONT-FACING BABY CHICK
+    "é" --> LATIN SMALL LETTER E WITH ACUTE
+    ```
+
+3. 扩展字形集群(Extended Grapheme Clusters)表示一个人类可读的字符，每一个 `Character` 实例都是一个扩展字形集群。一个扩展字形集群可能由一个或者多个 Unicode 标量构成，同一个扩展字形集群也可能由一个或者多个 Unicode 标量以不同的形式构成。
+    ```Swift
+    let eAcute: Character = "\u{E9}"                         // é
+    let combinedEAcute: Character = "\u{65}\u{301}"          // e followed by ́
+    // eAcute is é, combinedEAcute is é
+    ```
+    字符、字符串等价判断使用标准等价标准：如果两者在语义和外观展现上一致，即使其底层使用不同的 Unicode 标量构成，也认为他们是等价的。
+
+4. 由于扩展字形集群可能有多个 Unicode 标量组成，因此不同字符或者相同字符的不同表现形式可能需要由不同大小的内存单元来存储，也就是说，`String` 对象的每一个字符，可能都占用不同大小的内存单元。因此 `String` 对象的长度，只能通过遍历其每一个字符，以确定每一个扩展字形集群的边界来获取。所以长字符串的长度获取，是一个高消耗的操作。也正是由于扩展字形集群大小不一，`String` 对象无法像 C 系语言一样，把字符串作为集合，直接通过整数下标来操作。`String` 对象的随机访问，只能通过一系列和 index 相关的方法来进行。
 
 ## Collection Types
 
