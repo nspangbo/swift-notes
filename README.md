@@ -77,101 +77,101 @@
 9. 断言(assertions)仅在开发环境中有效，前置条件(preconditions)在开发环境和生产环境中均有效，除非以 unchecked mode(-Ounchecked) 模式编译，两者均发生在运行时。`fatalError` 方法无论什么环境下都会导致程序突出，建议仅用于开发期间标识为实现的功能。
 
 
-### Basic Operators
+## Basic Operators
 
 
 
-### Strings and Characters
+## Strings and Characters
 
 1. 多行字符串的缩进问题
 
 
-### Collection Types
+## Collection Types
 
 
 
-### Control Flow
+## Control Flow
 
 
 
-### Functions
+## Functions
 
 
 
-### Closures
+## Closures
 
 
 
-### Enumerations
+## Enumerations
 
 
 
-### Classes and Structures
+## Classes and Structures
 
 
 
-### Properties
+## Properties
 
 
 
-### Methods
+## Methods
 
 
 
-### Subscripts
+## Subscripts
 
 
 
-### Inheritance
+## Inheritance
 
 
 
-### Initialization
+## Initialization
 
 
 
-### Deinitialization
+## Deinitialization
 
 
 
-### Optional Chaining
+## Optional Chaining
 
 
 
-### Error Handling
+## Error Handling
 
 
 
-### Type Casting
+## Type Casting
 
 
 
-### Nested Types
+## Nested Types
 
 
 
-### Extensions
+## Extensions
 
 
 
-### Protocols
+## Protocols
 
 
 
-### Generics
+## Generics
 
 
 
-### Automatic Reference Counting
+## Automatic Reference Counting
 
 
 
-### Memory Safety
+## Memory Safety
 
 
 
-### Access Control
+## Access Control
 
 
 
-### Advanced Operators
+## Advanced Operators
