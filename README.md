@@ -2,13 +2,7 @@
 
 > Swift 5 学习笔记。
 
-### 目录
-
-1. [A Swift Tour](#A Swift Tour)
-1. [The Basics](#The Basics)
-
-
-### A Swift Tour
+## A Swift Tour
 
 1. 在跨行字符串中，每一行的有效缩进，是相对右引号（最后三个引号）的缩进，右引号的缩进必须大于所有行的缩进，否则编译器会报错。
     ```Swift
@@ -47,7 +41,7 @@
 4. `defer` 定义的代码块，无论方法是否抛出了异常，都会在所有语句执行后，方法返回之前执行，因此可以用来做必要的清理工作，避免了 [异常安全问题](https://en.wikipedia.org/wiki/Exception_safety)。
 
 
-### The Basics
+## The Basics
 
 1. 首先，变量命名不再局限于 [ASCII](https://en.wikipedia.org/wiki/ASCII) 编码啦！😁如果和系统保留关键字重名，可以用 `` 包裹起来，不过为什么一定要这样呢~
     ```Swift
