@@ -9,10 +9,17 @@
     let quotation = """
     Even though there's whitespace to the left,
     the actual lines aren't indented.
-    Except for this line.
+        Except for this line.
     Double quotes (") can appear without being escaped.
     I still have \(apples + oranges) pieces of fruit.
     """
+    
+    // 输出
+    //Even though there's whitespace to the left,
+    //the actual lines aren't indented.
+    //  Except for this line.
+    //Double quotes (") can appear without being escaped.
+    //I still have \(apples + oranges) pieces of fruit.
     ```
 
 2. Swift 是类型安全的，因此 `if` 条件返回 `boolean` 值：
