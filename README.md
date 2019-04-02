@@ -165,7 +165,120 @@
 
 ## Control Flow
 
+1. `switch` 语句中，需要完整处理所有可能的案例，因此要么穷举所有 case，要么提供 `default` 分支。每个 case 执行完之后直接跳出 `switch` 语句，不会隐式贯穿（除非显式指明 `fallthrough` 关键字），也不用写 `break` 声明。`switch` 语句的模式匹配非常强大，除了简单的值匹配以外，还支持多种匹配模式：
+    ```swift
+    // 区间匹配
+    let approximateCount = 62
+    let countedThings = "moons orbiting Saturn"
+    let naturalCount: String
+    switch approximateCount {
+    case 0:
+        naturalCount = "no"
+    case 1..<5:
+        naturalCount = "a few"
+    case 5..<12:
+        naturalCount = "several"
+    case 12..<100:
+        naturalCount = "dozens of"
+    case 100..<1000:
+        naturalCount = "hundreds of"
+    default:
+        naturalCount = "many"
+    }
+    print("There are \(naturalCount) \(countedThings).")
+    // Prints "There are dozens of moons orbiting Saturn."
 
+    // 元组
+    let somePoint = (1, 1)
+    switch somePoint {
+    case (0, 0):
+        print("\(somePoint) is at the origin")
+    case (_, 0):
+        print("\(somePoint) is on the x-axis")
+    case (0, _):
+        print("\(somePoint) is on the y-axis")
+    case (-2...2, -2...2):
+        print("\(somePoint) is inside the box")
+    default:
+        print("\(somePoint) is outside of the box")
+    }
+    // Prints "(1, 1) is inside the box"
+
+    // 值绑定
+    let anotherPoint = (2, 0)
+    switch anotherPoint {
+    case (let x, 0):
+        print("on the x-axis with an x value of \(x)")
+    case (0, let y):
+        print("on the y-axis with a y value of \(y)")
+    case let (x, y):
+        print("somewhere else at (\(x), \(y))")
+    }
+    // Prints "on the x-axis with an x value of 2"
+
+    // 条件限定
+    let yetAnotherPoint = (1, -1)
+    switch yetAnotherPoint {
+    case let (x, y) where x == y:
+        print("(\(x), \(y)) is on the line x == y")
+    case let (x, y) where x == -y:
+        print("(\(x), \(y)) is on the line x == -y")
+    case let (x, y):
+        print("(\(x), \(y)) is just some arbitrary point")
+    }
+    // Prints "(1, -1) is on the line x == -y"
+    ```
+
+2. Swift 支持5个控制转移关键字：`continue`、`break`、`fallthrough`、`return`、`throw`：
+    1. `continue` 指示结束当前循环执行下次循环，只能用于循环语句中，不能用于 `enumerator` 语句中
+    2. `break` 跳出当前控制语句，只能用于循环和 `switch` 语句中
+    3. `fallthrough` 在 `switch` 语句中贯穿到下一个 case
+    4. `return` 跳出当前方法，在 `enumerator` 语句中表示跳过当前遍历项进项下一项遍历
+    5. `throw` 用于抛出一个异常，然后跳转到异常处理语句中
+
+3. Swift 支持标签语句：
+    ```swift
+    // 语法
+    label name: while condition {
+        //statements
+    }
+
+    // 示例
+    gameLoop: while square != finalSquare {
+        diceRoll += 1
+        if diceRoll == 7 { diceRoll = 1 }
+        switch square + diceRoll {
+        case finalSquare:
+            // diceRoll will move us to the final square, so the game is over
+            break gameLoop
+        case let newSquare where newSquare > finalSquare:
+            // diceRoll will move us beyond the final square, so roll again
+            continue gameLoop
+        default:
+            // this is a valid move, so find out its effect
+            square += diceRoll
+            square += board[square]
+        }
+    }
+    print("Game over!")
+    ```
+
+4. 检查 API 可用性：
+    ```swift
+    // 语法
+    if #available(platform name version, ..., *) {
+        statements to execute if the APIs are available
+    } else {
+        fallback statements to execute if the APIs are unavailable
+    }
+
+    // 示例
+    if #available(iOS 10, macOS 10.12, *) {
+        // Use iOS 10 APIs on iOS, and use macOS 10.12 APIs on macOS
+    } else {
+        // Fall back to earlier iOS and macOS APIs
+    }
+    ```
 
 ## Functions
 
