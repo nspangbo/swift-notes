@@ -314,6 +314,58 @@
 
 ## Enumerations
 
+1. Swift 的枚举类型比 C 语言中的枚举类型强大很多，后者仅仅将一组相关联的值分配给一组整型值，而前者除了原始值支持整型、浮点型、字符串、字符类型外，还支持关联值，以及递归枚举。枚举的声明语法如下：
+    ```swift
+    enum EnumerationType {
+        // ...
+    }
+    ```
+
+2. 枚举类型本身就是值，所以给每个 case 设置原始值不是必要的。原始值和关联值得区别在于，前者对于每一个枚举实例的每一个 case，原始值是不变的，而后者每个枚举实例的每个 case，只要求关联值类型一直，不通 case 之间，关联值没有类型限制，没有必然联系。
+    ```swift
+    enum Barcode {
+        case upc(Int, Int, Int, Int)
+        case qrCode(String)
+    }
+    ```
+
+3. 递归枚举值枚举类型某些 case 的关联对象是枚举类型本身。例如：
+    ```swift
+    enum ArithmeticExpression {
+        case number(Int)
+        indirect case addition(ArithmeticExpression, ArithmeticExpression)
+        indirect case multiplication(ArithmeticExpression, ArithmeticExpression)
+    }
+
+    // 等价写法
+    indirect enum ArithmeticExpression {
+        case number(Int)
+        case addition(ArithmeticExpression, ArithmeticExpression)
+        case multiplication(ArithmeticExpression, ArithmeticExpression)
+    }
+    ```
+    该枚举存储三种算术表达式，普通数字，加法表达式，乘法表达式。示例用法如下：
+    ```swift
+    func evaluate(_ expression: ArithmeticExpression) -> Int {
+        switch expression {
+        case let .number(value):
+            return value
+        case let .addition(left, right):
+            return evaluate(left) + evaluate(right)
+        case let .multiplication(left, right):
+            return evaluate(left) * evaluate(right)
+        }
+    }
+
+    let five = ArithmeticExpression.number(5)
+    let four = ArithmeticExpression.number(4)
+    let sum = ArithmeticExpression.addition(five, four)
+    let product = ArithmeticExpression.multiplication(sum, ArithmeticExpression.number(2))
+
+    print(evaluate(product))
+    // Prints "18"
+    ```
+    `evaluate` 方法是该枚举的核心实现。
 
 
 ## Classes and Structures
