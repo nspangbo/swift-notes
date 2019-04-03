@@ -389,7 +389,77 @@
 
 ## Properties
 
+1. Swift 中的属性类似于 OC 中的属性，但前者不再使用实例变量作为属性的底层存储。同时属性分为存储属性和计算属性，前者存储值，后者通过计算，操作另一个值，但可能并没有与之对应的一个实例变量存在。存储属性只能用于类和结构体中，计算属性则能用于类、结构体、枚举中。同样的，属性有实例属性和类型属性之分。我们还可以为存储属性或者继承自父类的存储属性或者计算属性添加属性观察者。
 
+2. 一个常量结构体，即使结构体内部有变量属性，也无法更改，因为值类型的对象在赋值给常量时，其所有的属性都将被标记为常量，引用类型则没有此特性。
+
+3. 使用 `lazy` 将一个存储属性标记为惰性属性，其值只有在第一次使用时才会计算，惰性属性必须用 `var` 标识。惰性属性通常用于其值依赖于某个外部因素的场景，因为在初始化时外部因素可能还没有就绪。另外在初始化操作非常复杂和耗时的场景下，惰性属性也适用，这样可以避免这类对象之后没有适用，而提前初始化浪费资源。重要提示，惰性属性需要由使用者自己保证线程安全，当惰性属性没有初始化时，在多个线程同时访问，将无法保证属性仅初始化一次。全局变量或常量总是具有惰性，并且不需要使用 `lazy` 标记。
+
+4. 计算属性在不通时候访问可能会得到不同的值，因此需要使用 `var` 声明。
+    ```swift
+    struct AlternativeRect {
+        var origin = Point()
+        var size = Size()
+        var center: Point {
+            get {
+                let centerX = origin.x + (size.width / 2)
+                let centerY = origin.y + (size.height / 2)
+                return Point(x: centerX, y: centerY)
+            }
+            set {
+                origin.x = newValue.x - (size.width / 2)
+                origin.y = newValue.y - (size.height / 2)
+            }
+        }
+    }
+    ```
+
+5. 属性观察期可用于非惰性存储属性和继承自父类的存储或计算属性，设置是惰性存储属性。
+    ```swift
+    class TypeA {
+        lazy var number = {
+            return 1
+        }()
+    }
+
+    class TypeB: TypeA {
+        override var number: Int {
+            willSet {}
+            
+            didSet {}
+        }
+    }
+
+    print(TypeB().number)
+    // output: 1
+    ```
+    在类的整个初始化过程中，修改自身属性不会触发属性观察期，但修改继承自父类的属性（调用父类 `init` 方法之后）则会触发属性观察期。如果把一个具有属性观察器的属性以输入输出参数的形式传递给一个方法，由于 [copy-in copy-out](https://docs.swift.org/swift-book/ReferenceManual/Declarations.html#ID545) 内存模型，属性的观察器会在进入方法和方法返回时分别调用一次。在属性观察器内部更改当前属性的值，不会触发属性观察器，但如果在 `willSet` 更改，其值会在 `didSet` 中被新值覆写。
+
+6. 类型属性类似于 OC 的类属性，可以是存储变量或常量属性，也可以是计算变量属性，由于类本身没有初始化方法，因此必须为其类型属性提供默认值，此类属性没有线程安全问题，在第一次使用前，即使通过多个线程同时访问，也能保障属性只初始化一次。类型属性是惰性的，但不需要使用 `lazy` 标记。
+    ```swift
+    struct SomeStructure {
+        static var storedTypeProperty = "Some value."
+        static var computedTypeProperty: Int {
+            return 1
+        }
+    }
+    enum SomeEnumeration {
+        static var storedTypeProperty = "Some value."
+        static var computedTypeProperty: Int {
+            return 6
+        }
+    }
+    class SomeClass {
+        static var storedTypeProperty = "Some value."
+        static var computedTypeProperty: Int {
+            return 27
+        }
+        class var overrideableComputedTypeProperty: Int {
+            return 107
+        }
+    }
+    ```
+    使用 `static` 标记类型属性，只有类中的类型计算属性，可以使用 `class` 标记以允许子类覆写，类型存储属性只能用 `static` 标记，且不允许子类覆写。
 
 ## Methods
 
