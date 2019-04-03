@@ -469,7 +469,18 @@
 
 ## Subscripts
 
-
+1. 下标是访问集合、列表、序列中元素的快捷方式，类、结构体、枚举类型均可以定义下标，数组、字典通过下标方式访问其中元素就是最好的例子。每种类型都可以定义多个下标，而下标可以有多个参数，甚至是可变参数，但参数不能是输入输出参数，也不能有默认值，下标通常还会返回一个值。下标通过是否提供 `set` 方法来决定其读写性：
+    ```swift
+    // 可读可写的下标声明
+    subscript(index: Int) -> Int {
+        get {
+            // return an appropriate subscript value here
+        }
+        set(newValue) {
+            // perform a suitable setting action here
+        }
+    }
+    ```
 
 ## Inheritance
 
