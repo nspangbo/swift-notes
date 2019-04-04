@@ -692,7 +692,75 @@
 
 ## Type Casting
 
+1. `is` 关键字用于判断某对象是否是某个类型的实例：
+    ```swift
+    class MediaItem {}
+    class Movie: MediaItem {}
+    class Song: MediaItem {}
 
+    var movieCount = 0
+    var songCount = 0
+
+    for item in library {
+        if item is Movie {
+            movieCount += 1
+        } else if item is Song {
+            songCount += 1
+        }
+    }
+    ```
+
+2. 尝试将父类实例转换为子类实例，称为向下转换（downcasting）, `as?` 返回一个可选的转换结果，`as!` 强制转换，如果失败则会触发运行时错误。
+    ```swift
+    for item in library {
+        if let movie = item as? Movie {
+            print("Movie: \(movie.name), dir. \(movie.director)")
+        } else if let song = item as? Song {
+            print("Song: \(song.name), by \(song.artist)")
+        }
+    }
+    ```
+
+3. 尝试将子类实例转换为父类实例，称为向上转换（upcasts），通常用于 `switch` 语句中的模式匹配：
+    ```swift
+    var things = [Any]()
+
+    things.append(0)
+    things.append(0.0)
+    things.append(42)
+    things.append(3.14159)
+    things.append("hello")
+    things.append((3.0, 5.0))
+    things.append(Movie(name: "Ghostbusters", director: "Ivan Reitman"))
+    things.append({ (name: String) -> String in "Hello, \(name)" })
+
+    for thing in things {
+        switch thing {
+        case 0 as Int:
+            print("zero as an Int")
+        case 0 as Double:
+            print("zero as a Double")
+        case let someInt as Int:
+            print("an integer value of \(someInt)")
+        case let someDouble as Double where someDouble > 0:
+            print("a positive double value of \(someDouble)")
+        case is Double:
+            print("some other double value that I don't want to print")
+        case let someString as String:
+            print("a string value of \"\(someString)\"")
+        case let (x, y) as (Double, Double):
+            print("an (x, y) point at \(x), \(y)")
+        case let movie as Movie:
+            print("a movie called \(movie.name), dir. \(movie.director)")
+        case let stringConverter as (String) -> String:
+            print(stringConverter("Michael"))
+        default:
+            print("something else")
+        }
+    }
+    ```
+
+4. 无论是向下还是向上转换，原实例都不会有任何变化，转换成功后，仅仅是将其作为一个新的类型的实例对待。
 
 ## Nested Types
 
