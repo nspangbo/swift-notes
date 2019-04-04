@@ -764,7 +764,17 @@
 
 ## Nested Types
 
+1. Swift 允许定义嵌套类型，即在一个类型中定义其他类型。使用时，采用链式语法：
+    ```swift
+    class TypeA {
+        enum EnumA {
+            case haha, hehe
+        }
+    }
 
+    let typeA = TypeA()
+    let enumA = TypeA.EnumA.haha
+    ```
 
 ## Extensions
 
