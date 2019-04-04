@@ -598,7 +598,17 @@
 
 ## Optional Chaining
 
+1. 由于可选类型的引入，方法、属性、下标的访问可能都会返回可选类型，于是把调用或查询结果可能为空的方法、属性、下标的操作称为可选链。链中任何一个环节出现 `nil` 都将导致整个查询的结果为 `nil`，否则查询的结果将是一个可选类型。和强制解包一个可选值类似，当可选值有值时，可以正常调用其上的方法、属性或者下标，区别在于可选链在可选值为 `nil` 时会正常返回 `nil`，而强制解包会导致运行时错误。
 
+2. 在可选值上通过可选链调用方法，同样可以检测到方法是否调用。因为没有明确返回值的方法，实际会隐式的返回一个空元组，即 `()`，也就是 `Void`，而在可选链中调用此类方法，则会返回 `()?` 或者 `Void?`：
+    ```swift
+    if john.residence?.printNumberOfRooms() != nil {
+        print("It was possible to print the number of rooms.")
+    } else {
+        print("It was not possible to print the number of rooms.")
+    }
+    // Prints "It was not possible to print the number of rooms."
+    ```
 
 ## Error Handling
 
