@@ -612,7 +612,83 @@
 
 ## Error Handling
 
+1. Swift 为运行时抛出、捕获、传播和处理错误提供了一流的支持。`Error` 协议是一个空协议，定义所谓的错误。通过 `throw` 关键字抛出一个遵循 `Error` 协议的错误，用 `throws` 标记可能会抛出错误的方法。处理错误的几种方式如下：
+    ```swift
+    // 1. do-catch 方式
+    do {
+        try expression
+        statements
+    } catch pattern 1 {
+        statements
+    } catch pattern 2 where condition {
+        statements
+    } catch {
+        statements
+    }
 
+    // 2. 将可能抛出错误的语句转换为可选值
+    func someThrowingFunction() throws -> Int {
+        // ...
+    
+    let x = try? someThrowingFunction()
+
+    // 3. 确定不会抛出错误时，强制解包
+    let photo = try! loadImage(atPath: "./Resources/John Appleseed.jpg")
+    ```
+
+2. 一个方法可能并不会完全执行其方法体内的语句，例如中途 `return` 或者抛出异常，都会立即终止后续代码的执行。Swift 引入 `defer` 语句，来封装一个代码块内必须执行的一些逻辑，无论是中途 `return`、`break` 还是抛出了异常，都会在退出当前代码块之前执行 `defer` 块内的代码，如果当前代码块内定义了多个 `defer` 块，则会按照定义顺序的逆序执行。`defer` 常见的应用场景是执行一些必要的清理工作。
+    ```swift
+    func processFile(filename: String) throws {
+        if exists(filename) {
+            let file = open(filename)
+            defer {
+                close(file)
+            }
+            while let line = try file.readline() {
+                // Work with the file.
+            }
+            // close(file) is called here, at the end of the scope.
+        }
+    }
+    
+    // 执行顺序
+    class FileHandler {
+        func dealFile() {
+            defer {
+                print("defer 1")
+            }
+            defer {
+                print("defer 2")
+            }
+            
+            for index in 1...3 {
+                defer {
+                    print("loop .. defer \(index)")
+                }
+                print("loop .. \(index)")
+            }
+            
+            defer {
+                print("defer 3")
+            }
+            
+            print("end")
+        }
+    }
+    FileHandler().dealFile()
+
+    // output
+    // loop .. 1
+    // loop .. defer 1
+    // loop .. 2
+    // loop .. defer 2
+    // loop .. 3
+    // loop .. defer 3
+    // end
+    // defer 3
+    // defer 2
+    // defer 1
+    ```
 
 ## Type Casting
 
