@@ -798,7 +798,32 @@
 
 ## Protocols
 
+1. Swift 中的协议可以被类、结构体、枚举类型实现，还能通过扩展为协议中定义的方法提供默认实现，这样遵循该协议的类型都将默认具有这些实现，也可以提供自己的实现来覆盖默认行为，协议还支持多继承。
 
+2. 协议中定义的属性，只要求其名称、类型以及读写权限，这些属性可以被实现为存储属性或者计算属性。协议中的属性始终用 `var` 标记，和类型属性不同，在协议声明中始终使用 `static` 标记类型属性。
+    ```swift
+    protocol SomeProtocol {
+        var mustBeSettable: Int { get set }
+        var doesNotNeedToBeSettable: Int { get }
+    }
+    ```
+
+3. 协议中定义的方法，允许使用可变参数，但是无法为参数设置默认值，也没有方法体。如果希望方法可以改变对象本身，例如结构体中的方法，则同样需要使用 `mutating` 标记，在结构体类型实现该方法时，也需要保留 `mutating` 标记，类则没有此要求。
+    ```swift
+    protocol RandomNumberGenerator {
+        func random() -> Double
+        mutating func toggle()
+    }
+    ```
+    在协议中定义的构造器方法，可以被实现为指定构造器或者便利构造器，类型在实现这些方法时需要用 `required` 标记这些方法，以保证子类也满足协议要求。
+
+4. 继承自 `AnyObject` 的协议只能被类类型实现。当协议中存在可选的方法时，需要用 `optional` 标记这些可选方法，同时还需要使用 `@objc` 将协议本身和方法标记。
+    ```swift
+    @objc protocol CounterDataSource {
+        @objc optional func increment(forCount count: Int) -> Int
+        @objc optional var fixedIncrement: Int { get }
+    }
+    ```
 
 ## Generics
 
