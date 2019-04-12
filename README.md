@@ -22,7 +22,7 @@
     //I still have \(apples + oranges) pieces of fruit.
     ```
 
-2. Swift 是类型安全的，因此 `if` 条件返回 `boolean` 值：
+2. Swift 是类型安全的，因此 `if` 条件必需明确返回 `boolean` 值：
     ```swift
     if score { // error 
         ... 
@@ -153,7 +153,7 @@
     ```swift
     let eAcute: Character = "\u{E9}"                         // é
     let combinedEAcute: Character = "\u{65}\u{301}"          // e followed by ́
-    // eAcute is é, combinedEAcute is é
+    // eAcute is é, combinedEAcute is é
     ```
     字符、字符串等价判断使用标准等价标准：如果两者在语义和外观展现上一致，即使其底层使用不同的 Unicode 标量构成，也认为他们是等价的。
 
