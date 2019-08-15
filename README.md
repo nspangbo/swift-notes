@@ -930,7 +930,6 @@ func processFile(filename: String) throws {
 
 `defer` 语句的调用时机是在方法返回前（可能是正常结束，也可能是因为发生错误）。
 
-### 不透明类型
 
 
 
