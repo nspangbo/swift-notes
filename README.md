@@ -720,9 +720,219 @@ if unknownUnit == nil {
 
 必要构造器通过 `required` 修饰，要求所有子类都必须实现该构造器。比如 `UIView` 的 `init?(coder aDecoder: NSCoder)` 方法。
 
+
 ### 泛型
 
+同可选类型一样，泛型也是 Swift 最强大特性之一，很多标准库的实现，都是基于泛型代码构建的，比如数组、字段等。
+
+关于泛型，一个经典的示例就是交换两个值。比如要求实现交换两个整数，交换两个字符串，甚至交换两个对象的函数。如果没有泛型，我们可能需要实现多个类似的方法：
+
+```swift
+func swapTwoInts(_ a: inout Int, _ b: inout Int) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+
+func swapTwoStrings(_ a: inout String, _ b: inout String) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+
+func swapTwoDoubles(_ a: inout Double, _ b: inout Double) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+```
+
+上述方法实现一样的功能，唯一的不同在于参数类型。借助泛型，我们可以提供更好的实现：
+
+```swift
+func swapTwoValues<T>(_ a: inout T, _ b: inout T) {
+    let temporaryA = a
+    a = b
+    b = temporaryA
+}
+```
+
+事实上，上述代码正是 Swift 标准库中 `swap` 函数的实现。
+
+另一个很好的示例，是实现一个容器栈，考虑到容器元素的未知性和通用性，我们可以利用泛型提供更好的实现：
+
+```swift
+struct Stack<Element> {
+    var items = [Element]()
+    mutating func push(_ item: Element) {
+        items.append(item)
+    }
+    mutating func pop() -> Element {
+        return items.removeLast()
+    }
+}
+```
+
+泛型类型同样支持扩展，并且原始定义中的类型占位符在扩展中可以直接使用：
+
+```swift
+extension Stack {
+    var topItem: Element? {
+        return items.isEmpty ? nil : items[items.count - 1]
+    }
+}
+```
+
+上述代码中，我们使用一个类型占位符来标识一个未知的类型。除此之外，我们还可以通过 `where` 语句对占位类型设置约束。比如字典的定义，就要求 `Key` 是满足 `Hashable` 协议的。
+
+```swift
+public struct Dictionary<Key, Value> where Key : Hashable {}
+
+// 一种等价的写法
+public struct Dictionary<Key: Hashable, Value> {}
+```
+
+为了使协议具备泛型能力，Swift 在协议中引入了关联类型的概念：
+
+```swift
+protocol Container {
+    associatedtype Item
+    mutating func append(_ item: Item)
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+
+struct IntStack: Container {
+    // IntStack 的原始实现部分
+    var items = [Int]()
+    mutating func push(_ item: Int) {
+        items.append(item)
+    }
+    mutating func pop() -> Int {
+        return items.removeLast()
+    }
+    // Container 协议的实现部分
+    typealias Item = Int
+    mutating func append(_ item: Int) {
+        self.push(item)
+    }
+    var count: Int {
+        return items.count
+    }
+    subscript(i: Int) -> Int {
+        return items[i]
+    }
+}
+```
+
+关联类型同样支持设置约束：
+
+```swift
+protocol Container {
+    associatedtype Item: Equatable
+    mutating func append(_ item: Item)
+    var count: Int { get }
+    subscript(i: Int) -> Item { get }
+}
+
+protocol SuffixableContainer: Container {
+    associatedtype Suffix: SuffixableContainer where Suffix.Item == Item
+    func suffix(_ size: Int) -> Suffix
+}
+```
+
+> 在诸如 SnapKit、Kingfisher 等第三方框架中，广泛使用了泛型，建议深入理解。
+
+
+### 错误处理
+
+在 OC 中我们通常使用 `NSError` 或者 `NSException` 来表示错误，而错误处理逻辑相对混乱并且得不到保证，我们可以使用使用错误码去判断是什么错误，也可能通过异常捕获去处理错误，更严重的可能是在业务场景中，我们根本不会去处理错误。而 Swift 提供了 4 中错误处理方式，来满足不同的需求：
+
+1. 通过 `throwing` 传递错误
+2. 通过 `do-catch` 处理错误
+3. 将错误转换成可选值处理
+4. 禁用错误传递机制
+
+具体来讲，Swift 中所谓的错误只需要遵循 `Error` 协议，而它其实是一个控协议。通过 `throw` 关键字抛出一个错误：
+
+```swift
+enum VendingMachineError: Error {
+    case invalidSelection                     //选择无效
+    case insufficientFunds(coinsNeeded: Int) //金额不足
+    case outOfStock                             //缺货
+}
+
+throw VendingMachineError.insufficientFunds(coinsNeeded: 5)
+```
+
+Swift 之所以让错误处理更加一致和安全，是因为其在语法层面保证了错误一定得到处理。一个函数如果被 `throws` 标记，则表明该函数可能抛出一个错误，而函数调用方必须提供错误处理逻辑，即上述四种方式中的一种。
+
+`try` 用于 `do-catch` 表达式中：
+
+```swift
+var vendingMachine = VendingMachine()
+vendingMachine.coinsDeposited = 8
+do {
+    try buyFavoriteSnack(person: "Alice", vendingMachine: vendingMachine)
+    print("Success! Yum.")
+} catch VendingMachineError.invalidSelection {
+    print("Invalid Selection.")
+} catch VendingMachineError.outOfStock {
+    print("Out of Stock.")
+} catch VendingMachineError.insufficientFunds(let coinsNeeded) {
+    print("Insufficient funds. Please insert an additional \(coinsNeeded) coins.")
+} catch {
+    print("Unexpected error: \(error).")
+}
+// 打印“Insufficient funds. Please insert an additional 2 coins.”
+```
+
+`try?` 用于用于将错误转换为可选值：
+
+```swift
+func someThrowingFunction() throws -> Int {
+    // ...
+}
+
+let x = try? someThrowingFunction()
+
+// 等价形式
+let y: Int?
+do {
+    y = try someThrowingFunction()
+} catch {
+    y = nil
+}
+```
+
+`try!` 区别于 `try?`，但是如果发生错误，则会触发一个运行时断言：
+
+```swift
+let photo = try! loadImage(atPath: "./Resources/John Appleseed.jpg")
+```
+
+因为错误的发生可能导致方法提前结束，所以 Swift 提供了一种更加实用且有保障的清理机制：
+
+```swift
+func processFile(filename: String) throws {
+    if exists(filename) {
+        let file = open(filename)
+        defer {
+            close(file)
+        }
+        while let line = try file.readline() {
+            // 处理文件。
+        }
+        // close(file) 会在这里被调用，即作用域的最后。
+    }
+}
+```
+
+`defer` 语句的调用时机是在方法返回前（可能是正常结束，也可能是因为发生错误）。
+
 ### 不透明类型
+
+
 
 ### 自动引用计数
 
