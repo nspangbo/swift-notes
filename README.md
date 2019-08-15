@@ -511,13 +511,214 @@ extension TextRepresentable {
 ```
 
 
-
-
-
-
------
-
 ### 构造过程 & 析构过程
+
+相较于 OC，Swift 更加安全，其中一点体现在 Swift 在编译层面保证了所有用到的数据在使用前一定会得到初始化。和 OC 不同，Swift 的构造器没有返回值，不同构造器只能通过参数列表的差异来区分，不像 OC 构造器有不同的名字。
+
+具体来讲，类和结构体的构造器，必须负责为其所有的存储属性设置初始值，包括常量属性和变量属性，在 OC 中，大多数类型都有默认的初始值，而 Swift 没有。特别的，为存储属性设置默认值或者在构造过程中对其进行赋值，不会触发属性观察器（在属性观察器中改变属性本身，也不会导致循环触发问题，但是应该没有这种需求？）。另外，如果我们在构造器中对一个属性设置固定值，那么更好的实践方式应该是将其作为属性声明的一部分，以充分利用类型推到和默认构造器的便利。
+
+默认构造器是指：如果类和结构体为所有的存储属性都提供了默认值，并且没有实现任何自定义构造器，那么 Swift 会为这些类型提供一个不带参数的默认构造器。
+
+```swift
+class ShoppingListItem {
+    var name: String?
+    var quantity = 1
+    var purchased = false
+}
+var item = ShoppingListItem()
+```
+
+逐一成员构造器是指：对于结构体，如果没有实现任何自定义构造器，即使没有给所有属性设置默认值，Swift 也会提供一个参数列表包含所有属性的构造器。
+
+```swift
+struct Size {
+    var width = 0.0, height = 0.0
+}
+let twoByTwo = Size(width: 2.0, height: 2.0)
+```
+
+同时，我们还可以省略任何一个有默认值的属性：
+
+```swift
+let zeroByTwo = Size(height: 2.0)
+print(zeroByTwo.width, zeroByTwo.height)
+// 打印 "0.0 2.0"
+
+let zeroByZero = Size()
+print(zeroByZero.width, zeroByZero.height)
+// 打印 "0.0 0.0"
+```
+
+为了实现代码复用，Swift 提供了构造器代理机制，即类型的构造器可以通过其他构造器完成实例的部分构造过程，以避免多个构造器间的代码重复。值类型和引用类型的构造器代理规则不同，前者因为不能继承，所以值类型的构造器只能代理给自己的其他构造器，其基本表现形式为在一个构造器中调用 `self.init`，相对简单。而引用类型由于可以继承，所以其构造器必须保证自己以及继承来的属性都正确的被初始化，规则相对复杂。
+
+特别注意，如果为一个值类型提供了自定义构造器，则无法访问其默认构造器和逐一成员构造器，这种规则避免了在一个更复杂的构造器中做了额外的重要设置，但有人不小心使用了自动生成的构造器而导致重要逻辑的缺失。类似于 OC 中，我们在自定义的构造器中做了配置，所以需要禁用基本的 `init` 方法来防止外部的错误调用，只不过 OC 需要我们通过一些关键字去约束，而 Swift 在编译层面提供了保证。
+
+上述规则有一个方法例外，即如果我们既想提供自定义构造器，又想访问默认构造器和逐一成员构造器，我们可以把自定义构造器定义在类型的扩展中，而不是定义在原始类定义中。
+
+对于引用类型的构造过程，会复杂一些，这里引入了指定构造器（designated initializers）和遍历构造器（convenience initializers）两个概念。
+
+每个类必须拥有至少一个指定构造器，可能是自己实现，也可能通过继承得到，它负责完全初始化该类的存储属性，并负责调用父类的构造器，完成整个继承链的构造过程。
+
+便利构造器是辅助性的，通常我们为一个类定义一个指定构造器和多个便利构造器，便利构造器最终必须调用该类的指定构造器。
+
+```swift
+// 指定构造器
+init(parameters) {
+    statements
+}
+
+// 便利构造器
+convenience init(parameters) {
+    statements
+}
+```
+
+对于引用类型的构造器代理过程，有如下三个基本规则：
+
+1. 指定构造器必须调用其直接父类的指定构造器；
+2. 便利构造器只能调用同类的其他构造器；
+3. 便利构造器最终必须调用到制定构造器。
+
+简单来讲，指定构造器总是向上代理，便利构造器总是横向代理。
+
+![](https://docs.swift.org/swift-book/_images/initializerDelegation02_2x.png)
+
+基于上述规则，Swift 中引用类型的构造过程分为两个阶段：
+
+1. 阶段一：初始化本类中的所有存储属性；
+2. 阶段二：自定义过程，可以对本类的属性或者继承到的属性进行调整。
+
+两个阶段的基本表现如下：
+
+```swift
+init() {
+	// 阶段一：初始化
+    self.xxx = xxx
+    self.yyy = yyy
+    
+    // 继承链构造
+    super.init()
+    
+    // 阶段二：自定义
+    self.hello()
+}
+```
+
+Swift 提供了 4 中安全检查，以保证上述两个阶段的正确性：
+
+1. 指定构造器必须保证所有的存储属性都得到初始化后，才能将构造任务代理给父类的指定构造器；
+2. 指定构造器必须在其父类完成构造过程后，才能对其继承的属性进行自定义，以防止被父类的构造过程意外的覆写；
+3. 类似 2，便利构造器必须在调用指定构造器后，才能对属性进行自定义，以防止被指定构造器覆写；
+4. 构造器在完成第一阶段的属性初始化之前，不能访问任何实例方法，不能访问任何属性的值。
+
+Swift 的构造过程类似于系统的事件响应机制，阶段一是从子类到父类的必要构造过程，阶段二是从父类到子类的可选自定义过程。
+
+和普通方法的覆写类似，构造器也可以被覆写，子类可以将父类的指定构造器覆写为指定构造器或者便利构造器，使用 `override` 标识。因为子类无法访问父类便利构造器，所以当子类的构造器和父类的便利构造器方法签名相同时，并不需要使用 `override` 标识。
+
+区别于 OC，Swift 的构造器默认情况下是不会被子类继承的，以防止父类简单的构造过程无法正确实例化一个子类。构造器的继承仅发生在安全和适当的情况下，规则如下：
+
+1. 子类中新引入的所有存储属性都有默认值；
+2. 如果子类没有定义任何构造器，则将继承父类的所有指定构造器；
+3. 如果子类通过继承或者自定义实现，提供了所有父类的指定构造器，则将自动继承父类的所有便利构造器。
+
+基于上述规则，引入一个简单示例：
+
+```swift
+class Food {
+    var name: String
+    init(name: String) {
+        self.name = name
+    }
+
+    convenience init() {
+        self.init(name: "[Unnamed]")
+    }
+}
+```
+
+`Food` 类的构造链如下图：
+
+![](https://docs.swift.org/swift-book/_images/initializersExample01_2x.png)
+
+```swift
+class RecipeIngredient: Food {
+    var quantity: Int
+    init(name: String, quantity: Int) {
+        self.quantity = quantity
+        super.init(name: name)
+    }
+    override convenience init(name: String) {
+        self.init(name: name, quantity: 1)
+    }
+}
+```
+
+`RecipeIngredient` 类的构造链如下图：
+
+![](https://docs.swift.org/swift-book/_images/initializersExample02_2x.png)
+
+```swift
+class ShoppingListItem: RecipeIngredient {
+    var purchased = false
+    var description: String {
+        var output = "\(quantity) x \(name)"
+        output += purchased ? " ✔" : " ✘"
+        return output
+    }
+}
+```
+
+`ShoppingListItem` 类的构造链如下图：
+
+![](https://docs.swift.org/swift-book/_images/initializersExample03_2x.png)
+
+在 OC 中，一个简单的构造器如下：
+
+```swift
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+    	// ...
+    }
+    return self;
+}
+```
+
+这类构造器的结果有两种：一个对象或者返回 `nil`。Swift 中的普通构造器一定会返回一个经过初始化的对象，为了支持构造过程失败的情况，引入了可失败构造器。可失败构造器对于结构体和枚举尤为重要，比如 Swift 中的枚举允许通过原始值初始化，而调用方传入的原始值不一定对应一个枚举值。
+
+```swift
+enum TemperatureUnit {
+    case Kelvin, Celsius, Fahrenheit
+    init?(symbol: Character) {
+        switch symbol {
+        case "K":
+            self = .Kelvin
+        case "C":
+            self = .Celsius
+        case "F":
+            self = .Fahrenheit
+        default:
+            return nil
+        }
+    }
+}
+
+let fahrenheitUnit = TemperatureUnit(symbol: "F")
+if fahrenheitUnit != nil {
+    print("This is a defined temperature unit, so initialization succeeded.")
+}
+// 打印“This is a defined temperature unit, so initialization succeeded.”
+
+let unknownUnit = TemperatureUnit(symbol: "X")
+if unknownUnit == nil {
+    print("This is not a defined temperature unit, so initialization failed.")
+}
+// 打印“This is not a defined temperature unit, so initialization failed.”
+```
+
+特别的，可失败构造器的签名，不能和普通构造器签名相同。并且严格来说，构造器都不支持返回值，因为构造器本身的作用，只是为了确保对象能被正确构造，因此我们只是用 `return nil` 表明可失败构造器构造失败，而不要用关键字 `return` 来表明构造成功。通普通构造器一样，可失败构造器也支持同样规则的代理，不过一旦任何一个环节构造失败，整个构造过程都会直接结束，后续逻辑都不会被执行。我们可以用非可失败构造器重写可失败构造器，但反过来却不行。
+
+必要构造器通过 `required` 修饰，要求所有子类都必须实现该构造器。比如 `UIView` 的 `init?(coder aDecoder: NSCoder)` 方法。
 
 ### 泛型
 
