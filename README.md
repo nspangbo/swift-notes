@@ -936,6 +936,141 @@ func processFile(filename: String) throws {
 
 ### 自动引用计数
 
+Swift 和 OC 一样，采用 ARC 机制管理内存，面对循环引用问题，Swift 提供了两种解决方案：
+
+1. 弱引用（weak reference），使用 `weak` 关键字标识；
+2. 无主引用（unowned reference），使用 `unowned` 关键字标识。
+
+弱引用和无主引用都不会保留值，不会阻止 ARC 机制回收对象。不同之处在于，弱引用通常用于所引用的对象具有相对自己更短的生命周期的场景，以便在所引用对象释放后自动置为 `nil`，因此弱引用属性都是某种类型的可选类型。而无主引用通常用于所引用对象的生命周期和自身相同甚至更长的场景，主观上期望此类属性一直有值，并且如果引用对象释放，此类属性也不会被置为 `nil`，如果再访问会触发运行时错误，无主引用不是可选值，所以使用上会比弱引用方便一些。
+
+闭包内的循环引用问题同样适用上述两种方案解决，基本语法如下：
+
+```swift
+lazy var someClosure: (Int, String) -> String = {
+    [unowned self, weak delegate = self.delegate!] (index: Int, stringToProcess: String) -> String in
+    // 这里是闭包的函数体
+}
+```
+
+
 ### 内存安全
 
+Swift 通过 ARC 机制完成了绝大多数内存管理相关的工作，本节主要介绍 Swift 在内存独占性访问上的一些机制，了解这些潜在的内存访问风险，可以避免我们写出访问冲突的代码，加深对内存管理的理解。
+
+内存的访问，通常发生在我们为变量赋值，或者给函数传参的时候，我们需要先理解内存访问冲突是怎么形成的？
+
+内存访问的冲突会发生在代码尝试同时访问同一个存储地址的时侯，同一个存储地址的多个访问同时发生会造成不可预计或不一致的行为。在 Swift 里，有很多修改值的行为都会持续好几行代码，在修改值的过程中进行访问是有可能发生的。如下图：
+
+![](https://docs.swift.org/swift-book/_images/memory_shopping_2x.png)
+
+上述问题会让我们想到多线程中的安全问题，他们的原理确实是一样的，但是我们此处讨论的内存访问冲突，是可以在单线程环境中发生的。
+
+简单来讲，发生内存访问冲突有 3 个条件：
+
+1. 至少有一个写操作；
+2. 多个操作访问同一个内存地址；
+3. 多个操作在时间线上有重叠。
+
+其中第三点是发生内存访问冲突的关键。通常情况下，内存访问都是瞬时的，不可被打断，但是有两个例外的场景比较常见：
+
+1. `In-Out` 参数；
+2. 对 `self` 的访问。
+
+对于 `In-Out` 参数，函数会对其进行长期的写访问，直到函数结束，而非瞬时访问。如下所示：
+
+```swift
+var stepSize = 1
+
+func increment(_ number: inout Int) {
+    number += stepSize
+}
+
+increment(&stepSize)
+// 错误：stepSize 访问冲突
+```
+
+![](https://docs.swift.org/swift-book/_images/memory_increment_2x.png)
+
+另一个示例：
+
+```swift
+func balance(_ x: inout Int, _ y: inout Int) {
+    let sum = x + y
+    x = sum / 2
+    y = sum - x
+}
+var playerOneScore = 42
+var playerTwoScore = 30
+balance(&playerOneScore, &playerTwoScore)  // 正常
+balance(&playerOneScore, &playerOneScore)
+// 错误：playerOneScore 访问冲突
+```
+
+同样的，该函数存在两个长期的写访问，当入参是同一个变量时，内存地址一样，所以同样存在内存访问冲突。
+
+另一个常见的场景是在方法中访问 `self`：
+
+```swift
+struct Player {
+    var name: String
+    var health: Int
+    var energy: Int
+
+    static let maxHealth = 10
+    mutating func restoreHealth() {
+        health = Player.maxHealth
+    }
+}
+
+extension Player {
+    mutating func shareHealth(with teammate: inout Player) {
+        balance(&teammate.health, &health)
+    }
+}
+
+var oscar = Player(name: "Oscar", health: 10, energy: 10)
+var maria = Player(name: "Maria", health: 5, energy: 10)
+oscar.shareHealth(with: &maria)  // 正常
+oscar.shareHealth(with: &oscar)
+// 错误：oscar 访问冲突
+```
+
+![](https://docs.swift.org/swift-book/_images/memory_share_health_maria_2x.png)
+![](https://docs.swift.org/swift-book/_images/memory_share_health_oscar_2x.png)
+
+特别的，在实践中，绝大多数对于结构体属性的访问都是安全的重叠访问。限制结构体属性的重叠访问对于保证内存安全不是必要的，但因为访问独占权的要求比内存安全还要更严格，意味着即使有些代码违反了访问独占权的原则，也是内存安全的，所以如果编译器可以保证这种非专属的访问是安全的，那 Swift 就会允许这种行为的代码运行。特别是当你遵循下面的原则时，它可以保证结构体属性的重叠访问是安全的：
+
+1. 你访问的是实例的存储属性，而不是计算属性或类的属性；
+2. 结构体是本地变量的值，而非全局变量；
+3. 结构体要么没有被闭包捕获，要么只被非逃逸闭包捕获了。
+
+手动乌鸦脸。。。。。。。。。
+
+> 内存访问冲突问题不容易跟进，也不太好理解，建议深入理解内存访问机制，避免这类问题。
+
 ### 访问控制
+
+访问控制机制限定了代码的可见范围，允许我们隐藏代码的具体实现。访问级别可用于类、结构体、枚举等类型，也可以用于其中的属性、方法、构造器、下标等。
+
+Swift 提供以下 5 中级别的访问控制：
+
+1. `Open`：最高访问级别，可以被同一模块或者其他模块访问、继承和重写，只能用于类及类的成员；
+2. `Public`：可以被同一模块访问、继承和重写，不能被其他模块访问、继承和重写；
+3. `Internal`：默认级别，只能在模块内被访问；
+4. `File-Private`：同一文件内可以被访问；
+5. `Private`：最低访问权限，只能在源定义以及其扩展中被访问。
+
+特别的，如果一个类型被 `Open` 标记，需要充分考虑到被外部模块使用和继承时，作为类型父类的影响。
+
+Swift 中的访问级别遵循一个简单的原则：实体不能定义在具有更低访问级别（更严格）的实体中。比如一个 `Public` 的变量，其类型的访问级别不能是 `Internal`，`File-private` 或是 `Private`。因为无法保证变量的类型在使用变量的地方也具有访问权限。
+
+
+
+
+
+
+
+
+
+
+
